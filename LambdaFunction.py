@@ -46,6 +46,23 @@ def get_bearer_token(cluster_name, session):
         logger.error(f"Error generating bearer token for {cluster_name}: {e}")
         raise
 
+def label_service_account(v1_api, namespace_name, service_account_name, label_key, label_value):
+    body = {
+        "metadata": {
+            "labels": {
+                label_key: label_value
+            }
+        }
+    }
+
+    try:
+        api_response = v1_api.patch_namespaced_service_account(name=service_account_name, namespace=namespace_name, body=body)
+        logger.info(f"Labeled service account '{service_account_name}' in namespace '{namespace_name}' with '{label_key}={label_value}'. Response: {api_response}")
+    except Exception as e:
+        logger.error(f"Error labeling service account '{service_account_name}' in namespace '{namespace_name}': {e}")
+        raise
+
+
 def label_namespace(v1_api, namespace_name, label_key, label_value):
     body = {
         "metadata": {
@@ -62,7 +79,7 @@ def label_namespace(v1_api, namespace_name, label_key, label_value):
         logger.error(f"Error labeling namespace '{namespace_name}': {e}")
         raise
 
-def label_specific_pod(v1_api, namespace_name, pod_name, label_key, label_value):
+def label_pod(v1_api, namespace_name, pod_name, label_key, label_value):
     try:
         body = {
             "metadata": {
@@ -158,7 +175,7 @@ def lambda_handler(event, context):
         label_namespace(v1_api, namespace_to_label, "quarantine", "true")
 
         pod_to_label = "attack"
-        label_specific_pod(v1_api, namespace_to_label, pod_to_label, "quarantine", "true")
+        label_pod(v1_api, namespace_to_label, pod_to_label, "quarantine", "true")
 
         packet_capture_name = "collect-evidence"
         create_packet_capture(custom_objects_api, namespace_to_label, packet_capture_name, "all()")
